@@ -223,15 +223,8 @@ class SquirdleSolver:
 
 
 if __name__ == '__main__':
-    performance = []
     play_state = "y"
     while play_state == 'y':
         game = SquirdleSolver()
-        performance.append(game.auto_guess())
+        game.auto_guess()
         play_state = input("Play again? [y/n] ").lower()
-
-    print(f"mean number of guesses: {sum([x[1] for x in performance])/len(performance)}")
-    # with open('performance.txt', 'w') as f:
-    #     for i in performance:
-    #         for j in i[-1]:
-    #             f.write(','.join([i[0], j, '\n']))
