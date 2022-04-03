@@ -233,13 +233,27 @@ class SquirdleSolver:
         print(f"found {self.current_guess} on guess {self.game.guess_ix}")
         return self.current_guess, self.game.guess_ix, self.game.already_guessed
 
+    def seed_auto_guess(self, seed_mon=None):
+        if seed_mon in self.possible_pokemon:
+            self.current_guess = seed_mon
+            self.current_guess_attr = self.possible_pokemon[self.current_guess]
+            self.feedback = self.game.check_guess(self.current_guess)
+            self._find_best_picks()
+        if self.game.win_status:
+            print(f"found {self.current_guess} on guess {self.game.guess_ix}")
+            return
+        return self.auto_guess()
+
+
 if __name__ == '__main__':
     play_state = "y"
     while play_state == 'y':
-        game = SquirdleSolver("azelf")
+        game = SquirdleSolver()
         game.auto_guess()
-        rando_game = SquirdleSolver("azelf")
+        rando_game = SquirdleSolver()
         rando_game.total_random_guess()
-        better_rando_game = SquirdleSolver("azelf")
+        better_rando_game = SquirdleSolver()
         better_rando_game.informed_random_guess()
+        seeded_game = SquirdleSolver()
+        seeded_game.seed_auto_guess()
         play_state = input("Play again? [y/n] ").lower()
