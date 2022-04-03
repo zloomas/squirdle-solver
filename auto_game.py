@@ -102,6 +102,7 @@ class SquirdleSolver:
         if not self.feedback or not self.current_guess_attr:
             return
 
+        self.possible_pokemon.pop(self.current_guess)
         self._update_gen_feedback()
         self._update_type1_feedback()
         self._update_type2_feedback()
