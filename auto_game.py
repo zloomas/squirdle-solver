@@ -183,26 +183,20 @@ class SquirdleSolver:
 
         best_height = []
         temp_height_list = self.height_list.copy()
-        while not len(best_height):
+        while not len(best_height) and len(temp_height_list):
             height_guess = pseudo_median(temp_height_list)
             best_height = [key for key, val in best_picks.items() if float(val[3]) in height_guess]
             temp_height_list = list(filter(lambda x: x not in height_guess, temp_height_list))
-            # break if possible heights have been exhausted for this generation x types combo
-            if not len(temp_height_list):
-                break
 
         if len(best_height):
             best_picks = {key: val for key, val in best_picks.items() if key in best_height}
 
         best_weight = []
         temp_weight_list = self.weight_list.copy()
-        while not len(best_weight):
+        while not len(best_weight) and len(temp_weight_list):
             weight_guess = pseudo_median(temp_weight_list)
             best_weight = [key for key, val in best_picks.items() if float(val[4]) in weight_guess]
             temp_weight_list = list(filter(lambda x: x not in weight_guess, temp_weight_list))
-            # break if possible weights have been exhausted for this generation x types x height combo
-            if not len(temp_weight_list):
-                break
 
         if len(best_weight):
             best_picks = {key: val for key, val in best_picks.items() if key in best_weight}
@@ -217,8 +211,8 @@ class SquirdleSolver:
             if self.game.win_status:
                 print(f"found {self.current_guess} on guess {self.game.guess_ix}")
                 break
-            else:
-                self._find_best_picks()
+            self._find_best_picks()
+
         return self.current_guess, self.game.guess_ix, self.game.already_guessed
 
 
