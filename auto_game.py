@@ -18,6 +18,7 @@ class SquirdleSolver:
     def __init__(self, secret_mon=None):
         self.game = SquirdleGame(secret_mon)
         self.possible_pokemon = self.game.pokedex
+        self.num_possible = [len(self.possible_pokemon)]
         self.current_guess = None
         self.current_guess_attr = None
         self.feedback = None
@@ -108,6 +109,7 @@ class SquirdleSolver:
         self._update_type2_feedback()
         self._update_height_feedback()
         self._update_weight_feedback()
+        self.num_possible.append(len(self.possible_pokemon))
 
     def _update_references(self):
         self._update_possible()
@@ -204,57 +206,61 @@ class SquirdleSolver:
 
         self.best_picks = list(best_picks.keys())
 
-    def auto_guess(self):
+    def auto_guess(self, verbose=False):
         while self.game.guess_ix < 9:
             self.current_guess = choice(self.best_picks)
             self.current_guess_attr = self.possible_pokemon[self.current_guess]
             self.feedback = self.game.check_guess(self.current_guess)
             if self.game.win_status:
-                print(f"found {self.current_guess} on guess {self.game.guess_ix} using best picks")
+                if verbose:
+                    print(f"found {self.current_guess} on guess {self.game.guess_ix} using best picks")
                 break
             self._find_best_picks()
 
-        return self.current_guess, self.game.guess_ix, self.game.already_guessed
+        return self.current_guess, self.game.guess_ix, self.game.already_guessed, self.num_possible
 
-    def total_random_guess(self):
+    def total_random_guess(self, verbose=False):
         while not self.game.win_status:
             self.current_guess = choice(sorted(self.possible_pokemon))
             self.game.check_guess(self.current_guess)
             self.possible_pokemon.pop(self.current_guess)
-        print(f"found {self.current_guess} on guess {self.game.guess_ix} using total random guesses")
+        if verbose:
+            print(f"found {self.current_guess} on guess {self.game.guess_ix} using total random guesses")
 
-        return self.current_guess, self.game.guess_ix, self.game.already_guessed
+        return self.current_guess, self.game.guess_ix, self.game.already_guessed, self.num_possible
 
-    def informed_random_guess(self):
+    def informed_random_guess(self, verbose=False):
         while not self.game.win_status:
             self.current_guess = choice(sorted(self.possible_pokemon))
             self.current_guess_attr = self.possible_pokemon[self.current_guess]
             self.feedback = self.game.check_guess(self.current_guess)
             self._update_possible()
-        print(f"found {self.current_guess} on guess {self.game.guess_ix} using informed random guesses")
-        return self.current_guess, self.game.guess_ix, self.game.already_guessed
+        if verbose:
+            print(f"found {self.current_guess} on guess {self.game.guess_ix} using informed random guesses")
+        return self.current_guess, self.game.guess_ix, self.game.already_guessed, self.num_possible
 
-    def seed_auto_guess(self, seed_mon=None):
+    def seed_auto_guess(self, seed_mon=None, verbose=False):
         if seed_mon in self.possible_pokemon:
             self.current_guess = seed_mon
             self.current_guess_attr = self.possible_pokemon[self.current_guess]
             self.feedback = self.game.check_guess(self.current_guess)
             self._find_best_picks()
         if self.game.win_status:
-            print(f"found {self.current_guess} on guess {self.game.guess_ix} using seeded best picks")
+            if verbose:
+                print(f"found {self.current_guess} on guess {self.game.guess_ix} using seeded best picks")
             return
-        return self.auto_guess()
+        return self.auto_guess(verbose=verbose)
 
 
 if __name__ == '__main__':
     play_state = "y"
     while play_state == 'y':
         game = SquirdleSolver()
-        game.auto_guess()
+        game.auto_guess(verbose=True)
         rando_game = SquirdleSolver()
-        rando_game.total_random_guess()
+        rando_game.total_random_guess(verbose=True)
         better_rando_game = SquirdleSolver()
-        better_rando_game.informed_random_guess()
+        better_rando_game.informed_random_guess(verbose=True)
         seeded_game = SquirdleSolver()
-        seeded_game.seed_auto_guess("bulbasaur")
+        seeded_game.seed_auto_guess("bulbasaur", verbose=True)
         play_state = input("Play again? [y/n] ").lower()
