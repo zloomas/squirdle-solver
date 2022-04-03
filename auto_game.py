@@ -99,7 +99,7 @@ class SquirdleSolver:
         self.possible_pokemon = updated
 
     def _update_possible(self):
-        if not self.feedback:
+        if not self.feedback or not self.current_guess_attr:
             return
 
         self._update_gen_feedback()
@@ -215,10 +215,31 @@ class SquirdleSolver:
 
         return self.current_guess, self.game.guess_ix, self.game.already_guessed
 
+    def total_random_guess(self):
+        while not self.game.win_status:
+            self.current_guess = choice(sorted(self.possible_pokemon))
+            self.game.check_guess(self.current_guess)
+            self.possible_pokemon.pop(self.current_guess)
+        print(f"found {self.current_guess} on guess {self.game.guess_ix}")
+
+        return self.current_guess, self.game.guess_ix, self.game.already_guessed
+
+    def informed_random_guess(self):
+        while not self.game.win_status:
+            self.current_guess = choice(sorted(self.possible_pokemon))
+            self.current_guess_attr = self.possible_pokemon[self.current_guess]
+            self.feedback = self.game.check_guess(self.current_guess)
+            self._update_possible()
+        print(f"found {self.current_guess} on guess {self.game.guess_ix}")
+        return self.current_guess, self.game.guess_ix, self.game.already_guessed
 
 if __name__ == '__main__':
     play_state = "y"
     while play_state == 'y':
-        game = SquirdleSolver()
+        game = SquirdleSolver("azelf")
         game.auto_guess()
+        rando_game = SquirdleSolver("azelf")
+        rando_game.total_random_guess()
+        better_rando_game = SquirdleSolver("azelf")
+        better_rando_game.informed_random_guess()
         play_state = input("Play again? [y/n] ").lower()
