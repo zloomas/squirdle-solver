@@ -29,6 +29,7 @@ class SquirdleGame:
             self._secret_mon = secret_mon.lower()
             self._secret_mon_attr = self.pokedex[self._secret_mon]
 
+        # make gen, height, weight of secret mon numeric
         for ix in [0, 3, 4]:
             self._secret_mon_attr[ix] = float(self._secret_mon_attr[ix])
 
@@ -45,6 +46,8 @@ class SquirdleGame:
         else:
             guess_feedback = []
             guess_mon_attr = self.pokedex[guess_mon]
+
+            # make gen, height, weight of guess mon numeric for comparison
             for ix in [0, 3, 4]:
                 guess_mon_attr[ix] = float(guess_mon_attr[ix])
 
@@ -95,28 +98,31 @@ class SquirdleGame:
     def make_guess(self):
         guess = input("What's your guess? ")
         guess_lower = guess.lower()
-        if guess_lower not in self.already_guessed:
-            if guess_lower not in self.pokedex:
-                print(f"I don't recognize {guess.title()}, try another pokémon")
-            else:
-                self.check_guess(guess)
-        else:
+
+        if guess_lower not in self.pokedex:
+            print(f"I don't recognize {guess.title()}, try another pokémon")
+            return
+
+        if guess_lower in self.already_guessed:
             reminder = self.pokedex[guess]
             print(f"You've already guessed {guess.title()}, here's a reminder of its stats")
             print(f"gen: {reminder[0]} | type1: {reminder[1]} | type2: {reminder[2]}")
             print(f"height: {reminder[3]} | weight: {reminder[4]}")
             print("Try another pokémon")
+            return
+
+        self.check_guess(guess)
 
     def play(self):
         while self.guess_ix < 9:
             self.make_guess()
-            if not self.win_status:
-                print(" gen | type1 | type2 |   h   |   w   | Pokémon")
-                for pokemon, stats in self.already_guessed.items():
-                    print(f" {'   |   '.join(stats)}   | {pokemon.title()}")
-            else:
+            if self.win_status:
                 print(f'Congratulations! You guessed the secret pokémon in {self.guess_ix} turns')
                 break
+
+            print(" gen | type1 | type2 |   h   |   w   | Pokémon")
+            for pokemon, stats in self.already_guessed.items():
+                print(f" {'   |   '.join(stats)}   | {pokemon.title()}")
 
         if not self.win_status:
             print(f"The secret pokémon was {self._secret_mon}")
