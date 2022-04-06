@@ -118,8 +118,8 @@ class SquirdleSolver:
         self.height_list = []
         self.weight_list = []
 
-        type1_dict = dict()
-        type2_dict = dict()
+        self.type1_dict = dict()
+        self.type2_dict = dict()
 
         for pokemon, stats in self.possible_pokemon.items():
 
@@ -130,85 +130,125 @@ class SquirdleSolver:
             t1 = stats[1]
             t2 = stats[2]
 
-            if t1 not in type1_dict:
-                type1_dict[t1] = 1
+            if t1 not in self.type1_dict:
+                self.type1_dict[t1] = 1
             else:
-                type1_dict[t1] += 1
+                self.type1_dict[t1] += 1
 
-            if t2 not in type2_dict:
-                type2_dict[t2] = 1
+            if t2 not in self.type2_dict:
+                self.type2_dict[t2] = 1
             else:
-                type2_dict[t2] += 1
+                self.type2_dict[t2] += 1
 
         self.gen_list.sort()
         self.height_list.sort()
         self.weight_list.sort()
 
-        self.type1_freq = [(key, val) for key, val in type1_dict.items()]
-        self.type1_freq.sort(key=lambda x: x[-1], reverse=True)
-        self.type2_freq = [(key, val) for key, val in type2_dict.items()]
-        self.type2_freq.sort(key=lambda x: x[-1], reverse=True)
+        self.type1_freq = dict()
+        for key, val in self.type1_dict.items():
+            if val not in self.type1_freq:
+                self.type1_freq[val] = [key]
+            else:
+                self.type1_freq[val].append(key)
 
-    def _find_best_picks(self):
-        # update possible pokemon
-        self._update_references()
+        self.type2_freq = dict()
+        for key, val in self.type2_dict.items():
+            if val not in self.type2_freq:
+                self.type2_freq[val] = [key]
+            else:
+                self.type2_freq[val].append(key)
 
-        # start by trying to eliminate generations
+    def _find_best_gen(self):
+        # find median generation
         gen_guess = pseudo_median(self.gen_list)
-        if self.gen_list.count(gen_guess[0]) > self.gen_list.count(gen_guess[1]):
-            gen_guess = gen_guess[0]
-        else:
-            gen_guess = gen_guess[1]
+        gen_guess = choice(gen_guess)
 
-        best_picks = {key: val for key, val in self.possible_pokemon.items() if int(val[0]) == gen_guess}
+        best_picks = {key: val for key, val in self.best_picks.items() if int(val[0]) == gen_guess}
+        if len(best_picks):
+            self.best_picks = best_picks
 
+    def _find_best_types00(self):
         # try to pick most frequent component type available among this generation's pokemon
+        type1_possible = self.type1_freq.copy()
+        type2_possible = self.type2_freq.copy()
+        type1_guess = type1_possible.pop(max(type1_possible))
+        type2_guess = type2_possible.pop(max(type2_possible))
+        best_type = []
+        while not len(best_type):
+            best_type = [key for key, val in self.best_picks.items() if val[1] in type1_guess and val[2] in type2_guess]
+
+            if len(type2_possible):
+                type2_guess = type2_possible.pop(max(type2_possible))
+            elif len(type1_possible):
+                type1_guess = type1_possible.pop(max(type1_possible))
+                type2_possible = self.type2_freq.copy()
+                type2_guess = type2_possible.pop(max(type2_possible))
+            else:
+                break
+
+        if len(best_type):
+            self.best_picks = {key: val for key, val in self.best_picks.items() if key in best_type}
+
+    def _find_best_types01(self):
+        type1_freq = [(key, val) for key, val in self.type1_dict.items()]
+        type1_freq.sort(key=lambda x: x[-1], reverse=True)
+        type2_freq = [(key, val) for key, val in self.type2_dict.items()]
+        type2_freq.sort(key=lambda x: x[-1], reverse=True)
         primary_ix = 0
         secondary_ix = 0
         best_type = []
         while not len(best_type):
-            type1_guess = self.type1_freq[primary_ix][0]
-            type2_guess = self.type2_freq[secondary_ix][0]
-            best_type = [key for key, val in best_picks.items() if val[1] == type1_guess and val[2] == type2_guess]
+            type1_guess = type1_freq[primary_ix][0]
+            type2_guess = type2_freq[secondary_ix][0]
+            best_type = [key for key, val in self.best_picks.items() if val[1] == type1_guess and val[2] == type2_guess]
 
-            if secondary_ix < len(self.type2_freq)-1:
+            if secondary_ix < len(type2_freq) - 1:
                 secondary_ix += 1
-            elif primary_ix < len(self.type1_freq)-1:
+            elif primary_ix < len(type1_freq) - 1:
                 secondary_ix = 0
                 primary_ix += 1
             else:
                 break
 
-        # if still no selection, type is not more informative than generation...somehow
-        # make sure to not clobber existing best picks
         if len(best_type):
-            best_picks = {key: val for key, val in best_picks.items() if key in best_type}
+            self.best_picks = {key: val for key, val in self.best_picks.items() if key in best_type}
 
+    def _find_best_height(self):
         best_height = []
         temp_height_list = self.height_list.copy()
         while not len(best_height) and len(temp_height_list):
             height_guess = pseudo_median(temp_height_list)
-            best_height = [key for key, val in best_picks.items() if float(val[3]) in height_guess]
-            temp_height_list = list(filter(lambda x: x not in height_guess, temp_height_list))
+            best_height = [key for key, val in self.best_picks.items() if float(val[3]) in height_guess]
+            temp_height_list = tuple(filter(lambda x: x not in height_guess, temp_height_list))
 
         if len(best_height):
-            best_picks = {key: val for key, val in best_picks.items() if key in best_height}
+            self.best_picks = {key: val for key, val in self.best_picks.items() if key in best_height}
 
+    def _find_best_weight(self):
         best_weight = []
         temp_weight_list = self.weight_list.copy()
         while not len(best_weight) and len(temp_weight_list):
             weight_guess = pseudo_median(temp_weight_list)
-            best_weight = [key for key, val in best_picks.items() if float(val[4]) in weight_guess]
-            temp_weight_list = list(filter(lambda x: x not in weight_guess, temp_weight_list))
+            best_weight = [key for key, val in self.best_picks.items() if float(val[4]) in weight_guess]
+            temp_weight_list = tuple(filter(lambda x: x not in weight_guess, temp_weight_list))
 
         if len(best_weight):
-            best_picks = {key: val for key, val in best_picks.items() if key in best_weight}
+            self.best_picks = {key: val for key, val in self.best_picks.items() if key in best_weight}
 
-        self.best_picks = list(best_picks.keys())
+    def _find_best_picks(self):
+        # update possible pokemon
+        self._update_references()
+        self.best_picks = self.possible_pokemon.copy()
+
+        self._find_best_gen()
+        # self._find_best_types00()
+        self._find_best_types01()
+        self._find_best_height()
+        self._find_best_weight()
 
     def auto_guess(self, verbose=False):
         while self.game.guess_ix < 9:
-            self.current_guess = choice(self.best_picks)
+            self.current_guess = choice(sorted(self.best_picks))
             self.current_guess_attr = self.possible_pokemon[self.current_guess]
             self.feedback = self.game.check_guess(self.current_guess)
             if self.game.win_status:
